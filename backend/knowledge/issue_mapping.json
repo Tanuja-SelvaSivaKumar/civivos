@@ -1,0 +1,21 @@
+{
+  "ration": {
+    "issue_type": "Ration Card",
+    "department_id": "food"
+  },
+
+  "pension": {
+    "issue_type": "Pension",
+    "department_id": "social"
+  },
+
+  "property tax": {
+    "issue_type": "Property Tax",
+    "department_id": "municipal"
+  },
+
+  "birth certificate": {
+    "issue_type": "Birth Certificate",
+    "department_id": "municipal"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "RTI": {
+    "description": "Used when a citizen seeks information held by a public authority.",
+
+    "conditions": [
+      "Requesting application status",
+      "Requesting government records",
+      "Seeking official documents"
+    ],
+
+    "not_for": [
+      "Compensation claims",
+      "Judicial disputes"
+    ],
+
+    "law": "RTI Act, 2005",
+    "section": "Section 6"
+  },
+
+  "CPGRAMS": {
+    "description": "Used for grievances regarding public service delivery.",
+
+    "conditions": [
+      "Service delay",
+      "Poor public service",
+      "Administrative grievance"
+    ],
+
+    "law": "DARPG CPGRAMS Guidelines"
+  }
+}

@@ -1,0 +1,22 @@
+from enum import Enum
+
+
+class CaseState(str, Enum):
+
+    NEW = "NEW"
+
+    ANALYZED = "ANALYZED"
+
+    DRAFTED = "DRAFTED"
+
+    WAITING_FOR_APPROVAL = "WAITING_FOR_APPROVAL"
+
+    FILED = "FILED"
+
+    WAITING_FOR_RESPONSE = "WAITING_FOR_RESPONSE"
+
+    FIRST_APPEAL = "FIRST_APPEAL"
+
+    SECOND_APPEAL = "SECOND_APPEAL"
+
+    CLOSED = "CLOSED"

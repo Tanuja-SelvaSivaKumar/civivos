@@ -1,0 +1,16 @@
+{
+  "food": {
+    "name": "Food and Civil Supplies Department",
+    "authority": "State Government"
+  },
+
+  "social": {
+    "name": "Department of Social Welfare",
+    "authority": "State Government"
+  },
+
+  "municipal": {
+    "name": "Municipal Corporation",
+    "authority": "Local Government"
+  }
+}
