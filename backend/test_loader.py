@@ -1,4 +1,4 @@
-from knowledge.knowledge_loader import KnowledgeLoader
+from backend.knowledge.knowledge_loader import KnowledgeLoader
 
 loader = KnowledgeLoader()
 

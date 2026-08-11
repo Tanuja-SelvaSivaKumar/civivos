@@ -1,19 +1,20 @@
+from datetime import datetime
 from uuid import uuid4
-from datetime import datetime, timedelta
 
-from drafting_models import DraftRequest
+from backend.drafting_models import DraftRequest
 
-from knowledge.knowledge_loader import KnowledgeLoader
+from backend.agents.drafting_agent import DraftingAgent
+from backend.agents.reasoning_agent import ReasoningAgent
+from backend.agents.watcher_agent import WatcherAgent
 
-from agents.reasoning_agent import ReasoningAgent
-from agents.drafting_agent import DraftingAgent
-from agents.watcher_agent import WatcherAgent
+from backend.knowledge.knowledge_loader import KnowledgeLoader
 
-from workflow.workflow import WorkflowEngine
-from workflow.states import CaseState
-from workflow.models import Case
+from backend.memory.memory_engine import MemoryEngine
 
-from memory.memory_engine import MemoryEngine
+from backend.models.case import Case
+from backend.models.case_state import CaseState
+
+from backend.workflow.workflow import WorkflowEngine
 
 
 class Orchestrator:
@@ -32,26 +33,98 @@ class Orchestrator:
 
         self.memory = MemoryEngine()
 
-    def create_case(self, citizen_name: str, complaint: str):
+    # ==================================================
+    # CREATE CASE
+    # ==================================================
 
-        # ----------------------------
+    def create_case(
+        self,
+        citizen_name: str,
+        complaint: str
+    ):
+
+        # -----------------------------------
         # Load Knowledge
-        # ----------------------------
+        # -----------------------------------
 
-        context = self.loader.build_context(complaint)
+        context = self.loader.build_context(
+            complaint
+        )
 
         if context is None:
-            raise ValueError("Unable to identify the citizen issue.")
 
-        # ----------------------------
+            raise ValueError(
+                "Unable to identify the citizen issue."
+            )
+
+        # -----------------------------------
+        # Create Initial Case
+        # -----------------------------------
+
+        now = datetime.now()
+
+        case = Case(
+            case_id=str(uuid4()),
+            citizen_name=citizen_name,
+            complaint=complaint,
+            department=context.department.name,
+            legal_route="PENDING",
+            state=CaseState.CREATED,
+            created_at=now,
+            last_updated=now
+        )
+
+        # -----------------------------------
+        # Store Initial Case
+        # -----------------------------------
+
+        self.memory.add_case(case)
+
+        self.memory.add_event(
+            case.case_id,
+            "Case Created",
+            "Citizen complaint received by CivivOS."
+        )
+
+        # -----------------------------------
+        # Start Analysis
+        #
+        # CREATED → ANALYZING
+        # -----------------------------------
+
+        case = self.workflow.analyze_case(
+            case
+        )
+
+        self.memory.update_case(case)
+
+        self.memory.add_event(
+            case.case_id,
+            "AI Analysis Started",
+            "CivivOS AI started analyzing the complaint."
+        )
+
+        # -----------------------------------
         # AI Reasoning
-        # ----------------------------
+        # -----------------------------------
 
-        reasoning = self.reasoner.reason(context)
+        reasoning = self.reasoner.reason(
+            context
+        )
 
-        # ----------------------------
-        # Draft Document
-        # ----------------------------
+        # -----------------------------------
+        # Store Legal Route
+        # -----------------------------------
+
+        case.legal_route = (
+            reasoning.selected_route
+        )
+
+        self.memory.update_case(case)
+
+        # -----------------------------------
+        # Generate Draft
+        # -----------------------------------
 
         request = DraftRequest(
             citizen_name=citizen_name,
@@ -60,65 +133,65 @@ class Orchestrator:
             legal_route=reasoning.selected_route
         )
 
-        draft = self.drafter.generate(request)
-
-        # ----------------------------
-        # Create Case
-        # ----------------------------
-
-        case = Case(
-    case_id=str(uuid4()),
-    citizen_name=citizen_name,
-    complaint=complaint,
-    department=context.department.name,
-    legal_route=reasoning.selected_route,
-    state=CaseState.NEW,
-    created_at=datetime.now(),
-    last_updated=datetime.now()
-)
-        # ----------------------------
-        # Workflow
-        # ----------------------------
-
-        case = self.workflow.analyze_case(case)
-        case = self.workflow.draft_case(case)
-        case = self.workflow.wait_for_approval(case)
-
-        # Demo: auto approve for now
-        case = self.workflow.approve_case(case)
-
-        # ----------------------------
-        # Memory
-        # ----------------------------
-
-        self.memory.add_case(case)
-
-        self.memory.add_event(
-            case.case_id,
-            "Case Created"
+        draft = self.drafter.generate(
+            request
         )
 
-        self.memory.add_event(
-            case.case_id,
-            "Reasoning Completed"
+        # -----------------------------------
+        # Complete Analysis
+        #
+        # ANALYZING → DRAFT_READY
+        # -----------------------------------
+
+        case = self.workflow.complete_analysis(
+            case
         )
+
+        self.memory.update_case(case)
 
         self.memory.add_event(
             case.case_id,
-            "Draft Generated"
+            "AI Analysis Completed",
+            "AI reasoning completed and the legal route was selected."
         )
+
+        # -----------------------------------
+        # Draft Generated
+        # -----------------------------------
 
         self.memory.add_event(
             case.case_id,
-            "Citizen Approved Draft"
+            "Draft Generated",
+            "CivivOS generated the application draft."
         )
+
+        # -----------------------------------
+        # Wait For Citizen Approval
+        #
+        # DRAFT_READY → WAITING_APPROVAL
+        #
+        # IMPORTANT:
+        # The citizen has NOT approved anything yet.
+        # This only means the draft is ready for review.
+        # -----------------------------------
+
+        case = self.workflow.wait_for_approval(
+            case
+        )
+
+        self.memory.update_case(case)
 
         self.memory.add_event(
             case.case_id,
-            "RTI Filed"
+            "Waiting For Citizen Approval",
+            "CivivOS is waiting for the citizen to review and approve the draft."
         )
 
         return case, reasoning, draft
+
+    # ==================================================
+    # DAILY WATCHER
+    # ==================================================
 
     def run_daily_watcher(self):
 
@@ -126,15 +199,28 @@ class Orchestrator:
 
         for case in self.memory.get_all_cases():
 
-            result = self.watcher.check_case(case)
+            result = self.watcher.check_case(
+                case
+            )
+
+            # -----------------------------------
+            # Persist state changes
+            # -----------------------------------
 
             if result.action_taken:
 
-                self.memory.add_event(
-                    case.case_id,
-                    result.action
+                self.memory.update_case(
+                    case
                 )
 
-            results.append(result)
+                self.memory.add_event(
+                    case.case_id,
+                    result.action,
+                    result.reason
+                )
+
+            results.append(
+                result
+            )
 
         return results

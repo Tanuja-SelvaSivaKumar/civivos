@@ -1,5 +1,5 @@
-from knowledge.knowledge_loader import KnowledgeLoader
-from agents.reasoning_agent import ReasoningAgent
+from backend.knowledge.knowledge_loader import KnowledgeLoader
+from backend.agents.reasoning_agent import ReasoningAgent
 
 
 loader = KnowledgeLoader()

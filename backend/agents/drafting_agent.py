@@ -1,4 +1,4 @@
-from drafting_models import DraftRequest, DraftResponse
+from backend.drafting_models import DraftRequest, DraftResponse
 
 
 class DraftingAgent:

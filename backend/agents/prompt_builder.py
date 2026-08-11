@@ -1,10 +1,13 @@
-from knowledge.context import KnowledgeContext
+from backend.knowledge.context import KnowledgeContext
 
 
 def build_reasoning_prompt(context: KnowledgeContext) -> str:
 
     prompt = f"""
 You are an expert Indian civic legal advisor.
+
+Citizen Complaint:
+{context.complaint}
 
 Citizen Issue:
 {context.issue.issue_type}
@@ -50,6 +53,7 @@ Legal Section:
 
 """
 
+
     prompt += """
 
 Your task:
@@ -86,6 +90,7 @@ Example:
     "confidence":
         "High"
 }
+
 """
 
     return prompt

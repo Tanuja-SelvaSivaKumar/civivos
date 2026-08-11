@@ -1,10 +1,4 @@
-from datetime import datetime
-
-from pydantic import BaseModel
+from backend.models.event import CaseEvent
 
 
-class MemoryEvent(BaseModel):
-
-    timestamp: datetime
-
-    event: str
+__all__ = ["CaseEvent"]

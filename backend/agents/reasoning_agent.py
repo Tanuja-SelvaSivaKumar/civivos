@@ -1,10 +1,17 @@
-from knowledge.context import KnowledgeContext
+import json
 
-from agents.models import ReasoningResult
-from agents.prompt_builder import build_reasoning_prompt
+from backend.knowledge.context import KnowledgeContext
+from backend.agents.models import ReasoningResult
+from backend.agents.prompt_builder import build_reasoning_prompt
+from backend.llm.factor import get_provider
 
 
 class ReasoningAgent:
+
+    def __init__(self):
+
+        self.llm = get_provider()
+
 
     def reason(self, context: KnowledgeContext) -> ReasoningResult:
 
@@ -13,27 +20,15 @@ class ReasoningAgent:
         print("\n========== PROMPT ==========\n")
         print(prompt)
 
-        # Temporary mock response
-        return ReasoningResult(
-            selected_route="RTI",
 
-            reasoning=(
-                "The complaint requests the status of a government application. "
-                "The RTI Act is specifically designed for obtaining information "
-                "from public authorities."
-            ),
+        response = self.llm.generate(prompt)
 
-            evidence=[
-                "Citizen requests application status",
-                "Department identified successfully",
-                "Information is held by a public authority"
-            ],
 
-            rejected_routes=[
-                "CPGRAMS"
-            ],
+        print("\n========== LLM RESPONSE ==========\n")
+        print(response)
 
-            legal_reference="RTI Act, 2005 - Section 6",
 
-            confidence="High"
-        )
+        data = json.loads(response)
+
+
+        return ReasoningResult(**data)

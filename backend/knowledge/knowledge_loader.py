@@ -1,9 +1,8 @@
 import json
 from pathlib import Path
 
-from knowledge.context import KnowledgeContext
-
-from knowledge.models import (
+from backend.knowledge.context import KnowledgeContext
+from backend.knowledge.models import (
     IssueProfile,
     Department,
     LegalRule,
@@ -72,7 +71,8 @@ class KnowledgeLoader:
             legal_rules.append(LegalRule(**rule))
 
         return KnowledgeContext(
-            issue=issue,
-            department=department,
-            legal_rules=legal_rules,
-        )
+    complaint=complaint,
+    issue=issue,
+    department=department,
+    legal_rules=legal_rules,
+)

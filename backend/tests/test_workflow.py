@@ -1,56 +1,145 @@
-from workflow.models import Case
-from workflow.workflow import WorkflowEngine
+from datetime import datetime
+
+from backend.models.case import Case
+from backend.models.case_state import CaseState
+from backend.workflow.workflow import WorkflowEngine
 
 
-workflow = WorkflowEngine()
+def create_test_case():
+    return Case(
+        case_id="123",
+        citizen_name="Tanuj",
+        complaint="Ration card pending",
+        department="Food Department",
+        legal_route="CPGRAMS",
+        state=CaseState.CREATED,
+        created_at=datetime.now(),
+        last_updated=datetime.now(),
+    )
 
-case = Case(
-    case_id="CASE001",
-    citizen_name="Rahul Sharma",
-    complaint="My ration card application has been pending for three months.",
-    department="Food and Civil Supplies Department",
-    legal_route="RTI"
-)
 
-print("\n========== INITIAL ==========")
-print(case.state)
+def test_complete_case_workflow():
+    workflow = WorkflowEngine()
+    case = create_test_case()
 
-workflow.analyze_case(case)
+    # -----------------------------------
+    # Initial
+    # -----------------------------------
 
-print("\n========== ANALYZED ==========")
-print(case.state)
+    assert case.state == CaseState.CREATED
 
-workflow.draft_case(case)
+    # -----------------------------------
+    # Analyze
+    # -----------------------------------
 
-print("\n========== DRAFTED ==========")
-print(case.state)
+    workflow.analyze_case(case)
 
-workflow.wait_for_approval(case)
+    assert case.state == CaseState.ANALYZING
 
-print("\n========== WAITING ==========")
-print(case.state)
+    # -----------------------------------
+    # Generate Draft
+    # -----------------------------------
 
-workflow.approve_case(case)
+    workflow.draft_case(case)
 
-print("\n========== FILED ==========")
-print(case.state)
+    assert case.state == CaseState.DRAFT_READY
 
-workflow.wait_for_response(case)
+    # -----------------------------------
+    # Wait For Citizen Approval
+    # -----------------------------------
 
-print("\n========== WAITING RESPONSE ==========")
-print(case.state)
+    workflow.wait_for_approval(case)
 
-workflow.first_appeal(case)
+    assert case.state == CaseState.WAITING_APPROVAL
 
-print("\n========== FIRST APPEAL ==========")
-print(case.state)
+    # -----------------------------------
+    # Citizen Approves
+    # -----------------------------------
 
-workflow.second_appeal(case)
+    workflow.approve_case(case)
 
-print("\n========== SECOND APPEAL ==========")
-print(case.state)
+    assert case.state == CaseState.CITIZEN_APPROVED
 
-workflow.close_case(case)
+    # -----------------------------------
+    # File Case
+    # -----------------------------------
 
-print("\n========== CLOSED ==========")
-print(case.state)
+    workflow.file_case(case)
+
+    assert case.state == CaseState.FILED
+
+    # -----------------------------------
+    # Wait For Government Response
+    # -----------------------------------
+
+    workflow.wait_for_response(case)
+
+    assert case.state == CaseState.WAITING_RESPONSE
+
+    # -----------------------------------
+    # First Appeal
+    # -----------------------------------
+
+    workflow.first_appeal(case)
+
+    assert case.state == CaseState.FIRST_APPEAL_REQUIRED
+
+    # -----------------------------------
+    # Second Appeal
+    # -----------------------------------
+
+    workflow.second_appeal(case)
+
+    assert case.state == CaseState.ESCALATED
+
+    # -----------------------------------
+    # Close Case
+    # -----------------------------------
+
+    workflow.close_case(case)
+
+    assert case.state == CaseState.CLOSED
+
+
+def test_invalid_analysis_transition():
+    workflow = WorkflowEngine()
+    case = create_test_case()
+
+    workflow.analyze_case(case)
+
+    try:
+        workflow.analyze_case(case)
+        assert False, "Expected ValueError"
+    except ValueError:
+        pass
+
+
+def test_invalid_approval_transition():
+    workflow = WorkflowEngine()
+    case = create_test_case()
+
+    try:
+        workflow.approve_case(case)
+        assert False, "Expected ValueError"
+    except ValueError:
+        pass
+
+
+def test_invalid_file_transition():
+    workflow = WorkflowEngine()
+    case = create_test_case()
+
+    try:
+        workflow.file_case(case)
+        assert False, "Expected ValueError"
+    except ValueError:
+        pass
+
+
+def test_close_case():
+    workflow = WorkflowEngine()
+    case = create_test_case()
+
+    workflow.close_case(case)
+
+    assert case.state == CaseState.CLOSED

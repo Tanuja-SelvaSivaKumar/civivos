@@ -1,38 +1,90 @@
 from datetime import datetime
 
-from workflow.states import CaseState
-from models.watcher_result import WatcherResult
+from backend.models.case_state import CaseState
+from backend.models.watcher_result import WatcherResult
 
 
 class WatcherAgent:
 
+    # -----------------------------------
+    # Check Case
+    # -----------------------------------
+
     def check_case(self, case):
 
-        today = datetime.now()
+        now = datetime.now()
+
+        # --------------------------------
+        # Only monitor waiting cases
+        # --------------------------------
+
+        if case.state != CaseState.WAITING_RESPONSE:
+
+            return WatcherResult(
+
+                case_id=case.case_id,
+
+                action_taken=False,
+
+                action="IGNORED",
+
+                reason=(
+                    "Case is not currently waiting "
+                    "for a government response."
+                )
+            )
+
+        # --------------------------------
+        # No deadline
+        # --------------------------------
 
         if case.deadline is None:
 
             return WatcherResult(
+
                 case_id=case.case_id,
+
                 action_taken=False,
-                action="None",
+
+                action="NONE",
+
                 reason="No deadline available."
             )
 
-        if today >= case.deadline:
+        # --------------------------------
+        # Deadline crossed
+        # --------------------------------
 
-            case.state = CaseState.FIRST_APPEAL
+        if now >= case.deadline:
 
-            return WatcherResult(
-                case_id=case.case_id,
-                action_taken=True,
-                action="First Appeal",
-                reason="Statutory deadline crossed."
+            case.state = (
+                CaseState.FIRST_APPEAL_REQUIRED
             )
 
+            case.last_updated = now
+
+            return WatcherResult(
+
+                case_id=case.case_id,
+
+                action_taken=True,
+
+                action="FIRST_APPEAL_REQUIRED",
+
+                reason="Response deadline crossed."
+            )
+
+        # --------------------------------
+        # Still waiting
+        # --------------------------------
+
         return WatcherResult(
+
             case_id=case.case_id,
+
             action_taken=False,
-            action="Waiting",
+
+            action="WAITING",
+
             reason="Deadline not reached."
         )

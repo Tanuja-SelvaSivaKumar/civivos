@@ -1,6 +1,5 @@
-from agents.drafting_agent import DraftingAgent
-from drafting_models import DraftRequest
-
+from backend.agents.drafting_agent import DraftingAgent
+from backend.drafting_models import DraftRequest
 
 agent = DraftingAgent()
 

@@ -1,4 +1,4 @@
-from memory.memory_store import MemoryStore
+from backend.memory.memory_store import MemoryStore
 
 
 memory = MemoryStore()

@@ -2,7 +2,7 @@ from typing import List
 
 from pydantic import BaseModel
 
-from knowledge.models import (
+from backend.knowledge.models import (
     IssueProfile,
     Department,
     LegalRule,
@@ -10,6 +10,8 @@ from knowledge.models import (
 
 
 class KnowledgeContext(BaseModel):
+
+    complaint: str
 
     issue: IssueProfile
 
