@@ -1,79 +1,72 @@
+from backend.database.local_store import LocalStore
+from backend.database.storage import StorageBackend
 from backend.models.case import Case
 from backend.models.event import CaseEvent
 
 
 class MemoryEngine:
 
-    def __init__(self):
+    def __init__(
+        self,
+        storage: StorageBackend | None = None
+    ):
 
-        self.cases: dict[str, Case] = {}
+        self.storage = (
+            storage
+            if storage is not None
+            else LocalStore()
+        )
 
-        self.timeline: dict[str, list[CaseEvent]] = {}
-
-
-    # -----------------------------------
-    # Store Case
-    # -----------------------------------
+    # ==================================================
+    # STORE CASE
+    # ==================================================
 
     def add_case(
         self,
         case: Case
     ):
 
-        self.cases[case.case_id] = case
-
-        self.timeline.setdefault(
-            case.case_id,
-            []
+        self.storage.add_case(
+            case
         )
 
-
-    # -----------------------------------
-    # Update Case
-    # -----------------------------------
+    # ==================================================
+    # UPDATE CASE
+    # ==================================================
 
     def update_case(
         self,
         case: Case
     ):
 
-        if case.case_id not in self.cases:
+        self.storage.update_case(
+            case
+        )
 
-            raise ValueError(
-                f"Case '{case.case_id}' does not exist."
-            )
-
-        self.cases[case.case_id] = case
-
-
-    # -----------------------------------
-    # Get Case
-    # -----------------------------------
+    # ==================================================
+    # GET CASE
+    # ==================================================
 
     def get_case(
         self,
         case_id: str
     ):
 
-        return self.cases.get(
+        return self.storage.get_case(
             case_id
         )
 
-
-    # -----------------------------------
-    # Get All Cases
-    # -----------------------------------
+    # ==================================================
+    # GET ALL CASES
+    # ==================================================
 
     def get_all_cases(self):
 
-        return list(
-            self.cases.values()
-        )
+        return self.storage.get_all_cases()
 
-
-    # -----------------------------------
-    # Add Timeline Event
-    # -----------------------------------
+    # ==================================================
+    # ADD TIMELINE EVENT
+    # ==================================================
 
     def add_event(
         self,
@@ -82,43 +75,32 @@ class MemoryEngine:
         description: str | None = None
     ):
 
-        if case_id not in self.cases:
+        if self.storage.get_case(case_id) is None:
 
             raise ValueError(
                 f"Cannot add event. "
                 f"Case '{case_id}' does not exist."
             )
 
+        timeline_event = CaseEvent(
+            event=event,
+            description=description
+        )
 
-        timeline = self.timeline.setdefault(
+        self.storage.add_event(
             case_id,
-            []
+            timeline_event
         )
 
-
-        timeline.append(
-
-            CaseEvent(
-
-                event=event,
-
-                description=description
-
-            )
-
-        )
-
-
-    # -----------------------------------
-    # Get Timeline
-    # -----------------------------------
+    # ==================================================
+    # GET TIMELINE
+    # ==================================================
 
     def get_timeline(
         self,
         case_id: str
     ):
 
-        return self.timeline.get(
-            case_id,
-            []
+        return self.storage.get_timeline(
+            case_id
         )
