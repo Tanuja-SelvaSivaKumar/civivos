@@ -98,19 +98,42 @@ def test_daily_watcher():
     )
 
     # -----------------------------------
-    # Case is not yet waiting for a
-    # government response.
-    #
-    # Watcher should therefore ignore it.
+    # Case is still waiting for citizen
+    # approval, so it is NOT watchable.
     # -----------------------------------
 
     assert case.state == CaseState.WAITING_APPROVAL
+
+    # -----------------------------------
+    # Save the case ID so we can verify
+    # that THIS case is not returned by
+    # the watcher.
+    # -----------------------------------
+
+    case_id = case.case_id
+
+    # -----------------------------------
+    # Run watcher.
+    #
+    # The persistent database may contain
+    # other WAITING_RESPONSE cases.
+    # -----------------------------------
 
     results = orch.run_daily_watcher()
 
     assert results is not None
 
-    assert len(results) > 0
+    # -----------------------------------
+    # Our WAITING_APPROVAL case must not
+    # appear in watcher results.
+    # -----------------------------------
+
+    watched_case_ids = {
+        result.case_id
+        for result in results
+    }
+
+    assert case_id not in watched_case_ids
 
 
 # ==================================================
@@ -168,7 +191,7 @@ def test_watcher_moves_expired_case_to_first_appeal():
     # Start Waiting For Response
     #
     # FILED
-    #   ↓
+    #        ↓
     # WAITING_RESPONSE
     # -----------------------------------
 
@@ -226,6 +249,11 @@ def test_watcher_moves_expired_case_to_first_appeal():
         == "FIRST_APPEAL_REQUIRED"
     )
 
+    assert (
+        result.reason
+        == "Response deadline crossed."
+    )
+
     # -----------------------------------
     # Verify final case state
     # -----------------------------------
@@ -240,3 +268,21 @@ def test_watcher_moves_expired_case_to_first_appeal():
         updated_case.state
         == CaseState.FIRST_APPEAL_REQUIRED
     )
+
+    # -----------------------------------
+    # Verify timeline contains the
+    # watcher action exactly once.
+    # -----------------------------------
+
+    timeline = orch.memory.get_timeline(
+        case.case_id
+    )
+
+    appeal_events = [
+        event
+        for event in timeline
+        if event.event
+        == "FIRST_APPEAL_REQUIRED"
+    ]
+
+    assert len(appeal_events) == 1

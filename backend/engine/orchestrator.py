@@ -3,6 +3,8 @@ from uuid import uuid4
 
 from backend.drafting_models import DraftRequest
 
+from backend.actions.action_engine import ActionEngine
+
 from backend.agents.drafting_agent import DraftingAgent
 from backend.agents.reasoning_agent import ReasoningAgent
 from backend.agents.watcher_agent import WatcherAgent
@@ -27,11 +29,26 @@ class Orchestrator:
 
         self.drafter = DraftingAgent()
 
-        self.watcher = WatcherAgent()
-
         self.workflow = WorkflowEngine()
 
         self.memory = MemoryEngine()
+
+        # -----------------------------------
+        # Action Engine
+        # -----------------------------------
+
+        self.actions = ActionEngine(
+            self.workflow,
+            self.memory
+        )
+
+        # -----------------------------------
+        # Watcher
+        # -----------------------------------
+
+        self.watcher = WatcherAgent(
+            action_engine=self.actions
+        )
 
     # ==================================================
     # CREATE CASE
@@ -78,7 +95,9 @@ class Orchestrator:
         # Store Initial Case
         # -----------------------------------
 
-        self.memory.add_case(case)
+        self.memory.add_case(
+            case
+        )
 
         self.memory.add_event(
             case.case_id,
@@ -94,7 +113,9 @@ class Orchestrator:
             case
         )
 
-        self.memory.update_case(case)
+        self.memory.update_case(
+            case
+        )
 
         self.memory.add_event(
             case.case_id,
@@ -118,7 +139,9 @@ class Orchestrator:
             reasoning.selected_route
         )
 
-        self.memory.update_case(case)
+        self.memory.update_case(
+            case
+        )
 
         # -----------------------------------
         # Generate Draft
@@ -145,7 +168,9 @@ class Orchestrator:
             case
         )
 
-        self.memory.update_case(case)
+        self.memory.update_case(
+            case
+        )
 
         self.memory.add_event(
             case.case_id,
@@ -173,12 +198,17 @@ class Orchestrator:
             case
         )
 
-        self.memory.update_case(case)
+        self.memory.update_case(
+            case
+        )
 
         self.memory.add_event(
             case.case_id,
             "Waiting For Citizen Approval",
-            "CivivOS is waiting for the citizen to review and approve the draft."
+            (
+                "CivivOS is waiting for the citizen "
+                "to review and approve the draft."
+            )
         )
 
         return case, reasoning, draft
@@ -192,9 +222,7 @@ class Orchestrator:
         results = []
 
         # -----------------------------------
-        # IMPORTANT:
-        # Only retrieve cases that are actually
-        # waiting for a government response.
+        # Query only active response cases
         # -----------------------------------
 
         cases = (
@@ -209,7 +237,7 @@ class Orchestrator:
             )
 
             # -----------------------------------
-            # Persist state changes
+            # Persist watcher-driven changes
             # -----------------------------------
 
             if result.action_taken:
