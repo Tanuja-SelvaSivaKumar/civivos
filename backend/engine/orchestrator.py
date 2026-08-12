@@ -88,8 +88,6 @@ class Orchestrator:
 
         # -----------------------------------
         # Start Analysis
-        #
-        # CREATED → ANALYZING
         # -----------------------------------
 
         case = self.workflow.analyze_case(
@@ -166,13 +164,9 @@ class Orchestrator:
         )
 
         # -----------------------------------
-        # Wait For Citizen Approval
+        # Citizen Approval Stage
         #
         # DRAFT_READY → WAITING_APPROVAL
-        #
-        # IMPORTANT:
-        # The citizen has NOT approved anything yet.
-        # This only means the draft is ready for review.
         # -----------------------------------
 
         case = self.workflow.wait_for_approval(
@@ -197,7 +191,18 @@ class Orchestrator:
 
         results = []
 
-        for case in self.memory.get_all_cases():
+        # -----------------------------------
+        # IMPORTANT:
+        # Only retrieve cases that are actually
+        # waiting for a government response.
+        # -----------------------------------
+
+        cases = (
+            self.memory
+            .get_waiting_response_cases()
+        )
+
+        for case in cases:
 
             result = self.watcher.check_case(
                 case

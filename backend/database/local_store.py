@@ -13,6 +13,7 @@ class LocalStore(StorageBackend):
         self,
         db_path: str | Path = "data/civivos.db"
     ):
+
         self.db_path = Path(db_path)
 
         self.db_path.parent.mkdir(
@@ -80,6 +81,14 @@ class LocalStore(StorageBackend):
                 CREATE INDEX IF NOT EXISTS
                 idx_events_case_id
                 ON events(case_id)
+                """
+            )
+
+            connection.execute(
+                """
+                CREATE INDEX IF NOT EXISTS
+                idx_cases_state
+                ON cases(state)
                 """
             )
 
@@ -220,6 +229,75 @@ class LocalStore(StorageBackend):
         if row is None:
             return None
 
+        return self._row_to_case(row)
+
+    def get_all_cases(
+        self
+    ) -> list[Case]:
+
+        with self._connect() as connection:
+
+            rows = connection.execute(
+                """
+                SELECT
+                    case_id,
+                    citizen_name,
+                    complaint,
+                    department,
+                    legal_route,
+                    state,
+                    created_at,
+                    last_updated,
+                    deadline
+                FROM cases
+                ORDER BY created_at ASC
+                """
+            ).fetchall()
+
+        return [
+            self._row_to_case(row)
+            for row in rows
+        ]
+
+    def get_waiting_response_cases(
+        self
+    ) -> list[Case]:
+
+        with self._connect() as connection:
+
+            rows = connection.execute(
+                """
+                SELECT
+                    case_id,
+                    citizen_name,
+                    complaint,
+                    department,
+                    legal_route,
+                    state,
+                    created_at,
+                    last_updated,
+                    deadline
+                FROM cases
+                WHERE state = ?
+                ORDER BY deadline ASC
+                """,
+                ("WAITING_RESPONSE",)
+            ).fetchall()
+
+        return [
+            self._row_to_case(row)
+            for row in rows
+        ]
+
+    # ==================================================
+    # CASE ROW CONVERSION
+    # ==================================================
+
+    def _row_to_case(
+        self,
+        row
+    ) -> Case:
+
         record = CaseRecord(
             case_id=row["case_id"],
             citizen_name=row["citizen_name"],
@@ -243,59 +321,6 @@ class LocalStore(StorageBackend):
             last_updated=record.last_updated,
             deadline=record.deadline
         )
-
-    def get_all_cases(self) -> list[Case]:
-
-        with self._connect() as connection:
-
-            rows = connection.execute(
-                """
-                SELECT
-                    case_id,
-                    citizen_name,
-                    complaint,
-                    department,
-                    legal_route,
-                    state,
-                    created_at,
-                    last_updated,
-                    deadline
-                FROM cases
-                ORDER BY created_at ASC
-                """
-            ).fetchall()
-
-        cases: list[Case] = []
-
-        for row in rows:
-
-            record = CaseRecord(
-                case_id=row["case_id"],
-                citizen_name=row["citizen_name"],
-                complaint=row["complaint"],
-                department=row["department"],
-                legal_route=row["legal_route"],
-                state=row["state"],
-                created_at=row["created_at"],
-                last_updated=row["last_updated"],
-                deadline=row["deadline"]
-            )
-
-            cases.append(
-                Case(
-                    case_id=record.case_id,
-                    citizen_name=record.citizen_name,
-                    complaint=record.complaint,
-                    department=record.department,
-                    legal_route=record.legal_route,
-                    state=record.state,
-                    created_at=record.created_at,
-                    last_updated=record.last_updated,
-                    deadline=record.deadline
-                )
-            )
-
-        return cases
 
     # ==================================================
     # EVENT OPERATIONS

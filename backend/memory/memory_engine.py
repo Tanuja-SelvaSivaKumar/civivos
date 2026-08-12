@@ -1,3 +1,5 @@
+import os
+
 from backend.database.local_store import LocalStore
 from backend.database.storage import StorageBackend
 from backend.models.case import Case
@@ -11,10 +13,19 @@ class MemoryEngine:
         storage: StorageBackend | None = None
     ):
 
-        self.storage = (
-            storage
-            if storage is not None
-            else LocalStore()
+        if storage is not None:
+
+            self.storage = storage
+
+            return
+
+        database_path = os.getenv(
+            "CIVIVOS_DB_PATH",
+            "data/civivos.db"
+        )
+
+        self.storage = LocalStore(
+            database_path
         )
 
     # ==================================================
@@ -63,6 +74,14 @@ class MemoryEngine:
     def get_all_cases(self):
 
         return self.storage.get_all_cases()
+
+    # ==================================================
+    # GET WATCHABLE CASES
+    # ==================================================
+
+    def get_waiting_response_cases(self):
+
+        return self.storage.get_waiting_response_cases()
 
     # ==================================================
     # ADD TIMELINE EVENT
