@@ -1,7 +1,11 @@
 import sqlite3
 from pathlib import Path
 
-from backend.database.models import CaseRecord, EventRecord
+from backend.database.models import (
+    CaseRecord,
+    EventRecord,
+    FirstAppealRecord,
+)
 from backend.database.storage import StorageBackend
 from backend.models.case import Case
 from backend.models.event import CaseEvent
@@ -78,6 +82,24 @@ class LocalStore(StorageBackend):
 
             connection.execute(
                 """
+                CREATE TABLE IF NOT EXISTS first_appeals (
+                    appeal_id TEXT PRIMARY KEY,
+                    case_id TEXT NOT NULL UNIQUE,
+                    citizen_name TEXT NOT NULL,
+                    department TEXT NOT NULL,
+                    legal_route TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    body TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY(case_id)
+                        REFERENCES cases(case_id)
+                        ON DELETE CASCADE
+                )
+                """
+            )
+
+            connection.execute(
+                """
                 CREATE INDEX IF NOT EXISTS
                 idx_events_case_id
                 ON events(case_id)
@@ -89,6 +111,14 @@ class LocalStore(StorageBackend):
                 CREATE INDEX IF NOT EXISTS
                 idx_cases_state
                 ON cases(state)
+                """
+            )
+
+            connection.execute(
+                """
+                CREATE INDEX IF NOT EXISTS
+                idx_first_appeals_case_id
+                ON first_appeals(case_id)
                 """
             )
 
@@ -415,3 +445,100 @@ class LocalStore(StorageBackend):
             )
 
         return events
+
+    # ==================================================
+    # FIRST APPEAL OPERATIONS
+    # ==================================================
+
+    def add_first_appeal(
+        self,
+        appeal
+    ) -> None:
+
+        record = FirstAppealRecord(
+            appeal_id=appeal.appeal_id,
+            case_id=appeal.case_id,
+            citizen_name=appeal.citizen_name,
+            department=appeal.department,
+            legal_route=appeal.legal_route,
+            title=appeal.title,
+            body=appeal.body,
+            created_at=appeal.created_at
+        )
+
+        if self.get_case(record.case_id) is None:
+
+            raise ValueError(
+                f"Cannot add appeal. "
+                f"Case '{record.case_id}' does not exist."
+            )
+
+        with self._connect() as connection:
+
+            connection.execute(
+                """
+                INSERT INTO first_appeals (
+                    appeal_id,
+                    case_id,
+                    citizen_name,
+                    department,
+                    legal_route,
+                    title,
+                    body,
+                    created_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    record.appeal_id,
+                    record.case_id,
+                    record.citizen_name,
+                    record.department,
+                    record.legal_route,
+                    record.title,
+                    record.body,
+                    record.created_at.isoformat()
+                )
+            )
+
+            connection.commit()
+
+    def get_first_appeal(
+        self,
+        case_id: str
+    ):
+
+        from backend.appeal_models import FirstAppeal
+
+        with self._connect() as connection:
+
+            row = connection.execute(
+                """
+                SELECT
+                    appeal_id,
+                    case_id,
+                    citizen_name,
+                    department,
+                    legal_route,
+                    title,
+                    body,
+                    created_at
+                FROM first_appeals
+                WHERE case_id = ?
+                """,
+                (case_id,)
+            ).fetchone()
+
+        if row is None:
+            return None
+
+        return FirstAppeal(
+            appeal_id=row["appeal_id"],
+            case_id=row["case_id"],
+            citizen_name=row["citizen_name"],
+            department=row["department"],
+            legal_route=row["legal_route"],
+            title=row["title"],
+            body=row["body"],
+            created_at=row["created_at"]
+        )

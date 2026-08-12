@@ -28,11 +28,15 @@ class StorageBackend(ABC):
         pass
 
     @abstractmethod
-    def get_all_cases(self) -> list[Case]:
+    def get_all_cases(
+        self
+    ) -> list[Case]:
         pass
 
     @abstractmethod
-    def get_waiting_response_cases(self) -> list[Case]:
+    def get_waiting_response_cases(
+        self
+    ) -> list[Case]:
         pass
 
     @abstractmethod
@@ -48,4 +52,18 @@ class StorageBackend(ABC):
         self,
         case_id: str
     ) -> list[CaseEvent]:
+        pass
+
+    @abstractmethod
+    def add_first_appeal(
+        self,
+        appeal
+    ) -> None:
+        pass
+
+    @abstractmethod
+    def get_first_appeal(
+        self,
+        case_id: str
+    ):
         pass

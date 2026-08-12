@@ -6,7 +6,7 @@ from backend.memory.memory_engine import MemoryEngine
 from backend.models.case import Case
 from backend.models.case_state import CaseState
 from backend.workflow.workflow import WorkflowEngine
-
+from backend.agents.drafting_agent import DraftingAgent
 
 def create_case(
     case_id: str,
@@ -40,9 +40,12 @@ def create_action_engine(tmp_path):
 
     workflow = WorkflowEngine()
 
+    drafter = DraftingAgent()
+
     actions = ActionEngine(
         workflow,
-        memory
+        memory,
+        drafter
     )
 
     return memory, workflow, actions

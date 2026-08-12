@@ -29,7 +29,7 @@ class MemoryEngine:
         )
 
     # ==================================================
-    # STORE CASE
+    # CASES
     # ==================================================
 
     def add_case(
@@ -41,10 +41,6 @@ class MemoryEngine:
             case
         )
 
-    # ==================================================
-    # UPDATE CASE
-    # ==================================================
-
     def update_case(
         self,
         case: Case
@@ -53,10 +49,6 @@ class MemoryEngine:
         self.storage.update_case(
             case
         )
-
-    # ==================================================
-    # GET CASE
-    # ==================================================
 
     def get_case(
         self,
@@ -67,24 +59,16 @@ class MemoryEngine:
             case_id
         )
 
-    # ==================================================
-    # GET ALL CASES
-    # ==================================================
-
     def get_all_cases(self):
 
         return self.storage.get_all_cases()
-
-    # ==================================================
-    # GET WATCHABLE CASES
-    # ==================================================
 
     def get_waiting_response_cases(self):
 
         return self.storage.get_waiting_response_cases()
 
     # ==================================================
-    # ADD TIMELINE EVENT
+    # EVENTS
     # ==================================================
 
     def add_event(
@@ -111,15 +95,33 @@ class MemoryEngine:
             timeline_event
         )
 
-    # ==================================================
-    # GET TIMELINE
-    # ==================================================
-
     def get_timeline(
         self,
         case_id: str
     ):
 
         return self.storage.get_timeline(
+            case_id
+        )
+
+    # ==================================================
+    # FIRST APPEAL
+    # ==================================================
+
+    def add_first_appeal(
+        self,
+        appeal
+    ):
+
+        self.storage.add_first_appeal(
+            appeal
+        )
+
+    def get_first_appeal(
+        self,
+        case_id: str
+    ):
+
+        return self.storage.get_first_appeal(
             case_id
         )

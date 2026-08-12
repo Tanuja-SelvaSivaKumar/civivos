@@ -39,7 +39,8 @@ class Orchestrator:
 
         self.actions = ActionEngine(
             self.workflow,
-            self.memory
+            self.memory,
+            self.drafter
         )
 
         # -----------------------------------
