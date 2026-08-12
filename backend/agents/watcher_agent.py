@@ -2,23 +2,44 @@ from datetime import datetime
 
 from backend.models.case_state import CaseState
 from backend.models.watcher_result import WatcherResult
+from backend.policy.response_policy import ResponsePolicy
 
 
 class WatcherAgent:
 
-    # -----------------------------------
-    # Check Case
-    # -----------------------------------
+    def __init__(
+        self,
+        policy: ResponsePolicy | None = None
+    ):
+
+        self.policy = (
+            policy
+            if policy is not None
+            else ResponsePolicy()
+        )
+
+    # ==========================================
+    # CHECK CASE
+    # ==========================================
 
     def check_case(self, case):
 
         now = datetime.now()
 
-        # --------------------------------
-        # Only monitor waiting cases
-        # --------------------------------
+        # --------------------------------------
+        # Ask the policy what should happen
+        # --------------------------------------
 
-        if case.state != CaseState.WAITING_RESPONSE:
+        decision = self.policy.evaluate(
+            case,
+            now
+        )
+
+        # --------------------------------------
+        # Case is not currently watchable
+        # --------------------------------------
+
+        if decision == "IGNORED":
 
             return WatcherResult(
 
@@ -34,11 +55,11 @@ class WatcherAgent:
                 )
             )
 
-        # --------------------------------
-        # No deadline
-        # --------------------------------
+        # --------------------------------------
+        # No usable deadline
+        # --------------------------------------
 
-        if case.deadline is None:
+        if decision == "NONE":
 
             return WatcherResult(
 
@@ -51,11 +72,11 @@ class WatcherAgent:
                 reason="No deadline available."
             )
 
-        # --------------------------------
-        # Deadline crossed
-        # --------------------------------
+        # --------------------------------------
+        # Deadline reached
+        # --------------------------------------
 
-        if now >= case.deadline:
+        if decision == "FIRST_APPEAL_REQUIRED":
 
             case.state = (
                 CaseState.FIRST_APPEAL_REQUIRED
@@ -74,9 +95,9 @@ class WatcherAgent:
                 reason="Response deadline crossed."
             )
 
-        # --------------------------------
+        # --------------------------------------
         # Still waiting
-        # --------------------------------
+        # --------------------------------------
 
         return WatcherResult(
 
