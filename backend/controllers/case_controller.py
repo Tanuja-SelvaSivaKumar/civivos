@@ -4,11 +4,12 @@ from backend.engine.orchestrator import Orchestrator
 class CaseController:
 
     def __init__(self):
+
         self.orchestrator = Orchestrator()
 
-    # -----------------------------------
+    # ================================================
     # Create Case
-    # -----------------------------------
+    # ================================================
 
     def create_case(
         self,
@@ -29,9 +30,9 @@ class CaseController:
             "draft": draft
         }
 
-    # -----------------------------------
+    # ================================================
     # Get Case
-    # -----------------------------------
+    # ================================================
 
     def get_case(
         self,
@@ -42,9 +43,9 @@ class CaseController:
             case_id
         )
 
-    # -----------------------------------
+    # ================================================
     # Get Timeline
-    # -----------------------------------
+    # ================================================
 
     def get_timeline(
         self,
@@ -55,9 +56,22 @@ class CaseController:
             case_id
         )
 
-    # -----------------------------------
+    # ================================================
+    # Get First Appeal
+    # ================================================
+
+    def get_first_appeal(
+        self,
+        case_id: str
+    ):
+
+        return self.orchestrator.memory.get_first_appeal(
+            case_id
+        )
+
+    # ================================================
     # Approve Case
-    # -----------------------------------
+    # ================================================
 
     def approve_case(
         self,
@@ -87,9 +101,9 @@ class CaseController:
 
         return case
 
-    # -----------------------------------
+    # ================================================
     # File Case
-    # -----------------------------------
+    # ================================================
 
     def file_case(
         self,
@@ -119,9 +133,9 @@ class CaseController:
 
         return case
 
-    # -----------------------------------
+    # ================================================
     # Start Waiting For Response
-    # -----------------------------------
+    # ================================================
 
     def wait_for_response(
         self,
@@ -146,14 +160,14 @@ class CaseController:
         self.orchestrator.memory.add_event(
             case_id,
             "Waiting For Government Response",
-            "Civivos is waiting for the government department to respond."
+            "CivivOS is waiting for the government department to respond."
         )
 
         return case
 
-    # -----------------------------------
+    # ================================================
     # Run Watcher
-    # -----------------------------------
+    # ================================================
 
     def run_watcher(self):
 

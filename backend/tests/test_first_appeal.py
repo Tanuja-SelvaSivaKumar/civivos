@@ -1,167 +1,135 @@
 from datetime import datetime, timedelta
 
-from backend.actions.action_engine import ActionEngine
-from backend.database.local_store import LocalStore
-from backend.memory.memory_engine import MemoryEngine
-from backend.models.case import Case
-from backend.models.case_state import CaseState
-from backend.workflow.workflow import WorkflowEngine
-from backend.agents.drafting_agent import DraftingAgent
+from fastapi.testclient import TestClient
+
+from backend.app import app
+from backend.core.container import case_controller
 
 
-def create_engine(tmp_path):
+client = TestClient(app)
 
-    storage = LocalStore(
-        tmp_path / "first_appeal_test.db"
+
+def create_waiting_case():
+
+    response = client.post(
+        "/api/cases",
+        json={
+            "citizen_name": "API Appeal Test",
+            "complaint": (
+                "My ration card application has "
+                "been pending for three months."
+            ),
+        },
     )
 
-    memory = MemoryEngine(
-        storage
+    assert response.status_code == 200
+
+    case_id = response.json()[
+        "case"
+    ]["case_id"]
+
+    response = client.post(
+        f"/api/cases/{case_id}/approve"
     )
 
-    workflow = WorkflowEngine()
+    assert response.status_code == 200
 
-    drafter = DraftingAgent()
-
-    actions = ActionEngine(
-        workflow,
-        memory,
-        drafter
+    response = client.post(
+        f"/api/cases/{case_id}/file"
     )
 
-    return memory, workflow, actions
+    assert response.status_code == 200
 
-
-def create_case():
-
-    now = datetime.now()
-
-    return Case(
-        case_id="APPEAL-001",
-        citizen_name="Tanuj",
-        complaint="My ration card has been pending for 3 months.",
-        department="Food and Civil Supplies Department",
-        legal_route="DARPG CPGRAMS",
-        state=CaseState.ESCALATED,
-        created_at=now,
-        last_updated=now,
-        deadline=now + timedelta(days=30)
+    response = client.post(
+        f"/api/cases/{case_id}/wait"
     )
 
+    assert response.status_code == 200
 
-def test_first_appeal_draft_is_generated_and_persisted(
-    tmp_path
-):
+    return case_id
 
-    memory, workflow, actions = (
-        create_engine(tmp_path)
+
+def test_first_appeal_api_returns_generated_appeal():
+
+    case_id = create_waiting_case()
+
+    stored_case = (
+        case_controller
+        .orchestrator
+        .memory
+        .get_case(case_id)
     )
 
-    case = create_case()
+    assert stored_case is not None
 
-    memory.add_case(
-        case
+    stored_case.deadline = (
+        datetime.now()
+        - timedelta(days=1)
     )
 
-    actions.require_first_appeal(
-        case
+    case_controller.orchestrator.memory.update_case(
+        stored_case
     )
 
-    assert (
-        case.state
-        == CaseState.FIRST_APPEAL_REQUIRED
+    response = client.post(
+        "/api/watcher/run"
     )
 
-    appeal = memory.get_first_appeal(
-        case.case_id
-    )
+    assert response.status_code == 200
 
-    assert appeal is not None
+    watcher_results = response.json()
 
-    assert (
-        appeal.case_id
-        == case.case_id
-    )
-
-    assert (
-        appeal.citizen_name
-        == "Tanuj"
+    watcher_result = next(
+        result
+        for result in watcher_results
+        if result["case_id"] == case_id
     )
 
     assert (
-        appeal.legal_route
-        == "DARPG CPGRAMS"
+        watcher_result["action"]
+        == "FIRST_APPEAL_REQUIRED"
+    )
+
+    response = client.get(
+        f"/api/cases/{case_id}/first-appeal"
+    )
+
+    assert response.status_code == 200
+
+    appeal = response.json()
+
+    assert appeal["case_id"] == case_id
+
+    assert (
+        appeal["citizen_name"]
+        == "API Appeal Test"
     )
 
     assert (
-        appeal.title
+        appeal["title"]
         == "First Appeal - DARPG CPGRAMS"
     )
 
-    assert "Original Case ID:" in appeal.body
+    assert "Original Case ID:" in appeal["body"]
 
-    assert case.case_id in appeal.body
+    assert case_id in appeal["body"]
 
 
-def test_first_appeal_survives_storage_reload(
-    tmp_path
-):
+def test_first_appeal_api_returns_404_when_missing():
 
-    db_path = (
-        tmp_path
-        / "first_appeal_reload.db"
+    case_id = create_waiting_case()
+
+    response = client.get(
+        f"/api/cases/{case_id}/first-appeal"
     )
 
-    first_storage = LocalStore(
-        db_path
+    assert response.status_code == 404
+
+
+def test_first_appeal_api_returns_404_for_unknown_case():
+
+    response = client.get(
+        "/api/cases/nonexistent-case-id/first-appeal"
     )
 
-    first_memory = MemoryEngine(
-        first_storage
-    )
-
-    workflow = WorkflowEngine()
-
-    drafter = DraftingAgent()
-
-    actions = ActionEngine(
-        workflow,
-        first_memory,
-        drafter
-    )
-
-    case = create_case()
-
-    first_memory.add_case(
-        case
-    )
-
-    actions.require_first_appeal(
-        case
-    )
-
-    second_storage = LocalStore(
-        db_path
-    )
-
-    second_memory = MemoryEngine(
-        second_storage
-    )
-
-    restored_appeal = (
-        second_memory.get_first_appeal(
-            case.case_id
-        )
-    )
-
-    assert restored_appeal is not None
-
-    assert (
-        restored_appeal.case_id
-        == case.case_id
-    )
-
-    assert (
-        restored_appeal.title
-        == "First Appeal - DARPG CPGRAMS"
-    )
+    assert response.status_code == 404

@@ -5,7 +5,7 @@ from backend.core.container import case_controller
 
 
 router = APIRouter(
-    tags=["Civivos"]
+    tags=["CivivOS"]
 )
 
 
@@ -14,7 +14,9 @@ router = APIRouter(
 # ==================================================
 
 @router.post("/cases")
-def create_case(request: CaseCreateRequest):
+def create_case(
+    request: CaseCreateRequest
+):
 
     try:
 
@@ -38,7 +40,9 @@ def create_case(request: CaseCreateRequest):
 # ==================================================
 
 @router.get("/cases/{case_id}")
-def get_case(case_id: str):
+def get_case(
+    case_id: str
+):
 
     case = case_controller.get_case(
         case_id
@@ -59,13 +63,58 @@ def get_case(case_id: str):
 # ==================================================
 
 @router.get("/cases/{case_id}/timeline")
-def get_timeline(case_id: str):
+def get_timeline(
+    case_id: str
+):
 
-    timeline = case_controller.get_timeline(
+    case = case_controller.get_case(
         case_id
     )
 
-    return timeline
+    if case is None:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Case not found"
+        )
+
+    return case_controller.get_timeline(
+        case_id
+    )
+
+
+# ==================================================
+# FIRST APPEAL
+# ==================================================
+
+@router.get("/cases/{case_id}/first-appeal")
+def get_first_appeal(
+    case_id: str
+):
+
+    case = case_controller.get_case(
+        case_id
+    )
+
+    if case is None:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Case not found"
+        )
+
+    appeal = case_controller.get_first_appeal(
+        case_id
+    )
+
+    if appeal is None:
+
+        raise HTTPException(
+            status_code=404,
+            detail="First appeal has not been generated."
+        )
+
+    return appeal
 
 
 # ==================================================
@@ -73,7 +122,9 @@ def get_timeline(case_id: str):
 # ==================================================
 
 @router.post("/cases/{case_id}/approve")
-def approve_case(case_id: str):
+def approve_case(
+    case_id: str
+):
 
     try:
 
@@ -103,7 +154,9 @@ def approve_case(case_id: str):
 # ==================================================
 
 @router.post("/cases/{case_id}/file")
-def file_case(case_id: str):
+def file_case(
+    case_id: str
+):
 
     try:
 
@@ -133,7 +186,9 @@ def file_case(case_id: str):
 # ==================================================
 
 @router.post("/cases/{case_id}/wait")
-def wait_for_response(case_id: str):
+def wait_for_response(
+    case_id: str
+):
 
     try:
 

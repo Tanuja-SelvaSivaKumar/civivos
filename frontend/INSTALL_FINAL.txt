@@ -1,0 +1,30 @@
+CIVIVOS FINAL VISUAL PASS
+
+This package is a complete React/Vite frontend for the existing CivivOS FastAPI backend.
+
+Highlights
+- Side-mounted CivivOS brand rail
+- Government/civic hero imagery kept as atmospheric background
+- Subtle first-visit intro; route wipes removed
+- Scroll-driven section reveal/recede transitions
+- Script-aware typography for Hindi, Tamil, Telugu, Bengali, Marathi, Kannada and Malayalam
+- Language preference stored in localStorage
+- Dashboard, New Case, Case Detail and First Appeal routes
+- Existing backend API integration preserved
+
+Install
+1. Copy the contents of this folder into your canonical CivivOS frontend folder.
+2. From the frontend folder:
+   npm install
+   npm run dev
+3. In another terminal, run the existing backend:
+   cd C:\Users\tanuj\OneDrive\Desktop\civivos
+   .\venv\Scripts\Activate.ps1
+   python -m uvicorn backend.app:app --reload
+
+Routes
+/
+/dashboard
+/new
+/case/:caseId
+/case/:caseId/appeal

@@ -1,6 +1,6 @@
-from pydantic import BaseModel
 from typing import List
 
+from pydantic import BaseModel
 
 
 class CaseCreateRequest(BaseModel):
@@ -10,7 +10,6 @@ class CaseCreateRequest(BaseModel):
     complaint: str
 
 
-
 class AlternativeRoute(BaseModel):
 
     route: str
@@ -18,7 +17,6 @@ class AlternativeRoute(BaseModel):
     status: str
 
     reason: str
-
 
 
 class ReasoningResponse(BaseModel):
@@ -36,13 +34,11 @@ class ReasoningResponse(BaseModel):
     confidence: str
 
 
-
 class DraftResponseSchema(BaseModel):
 
     title: str
 
     body: str
-
 
 
 class CaseResponse(BaseModel):
@@ -60,7 +56,6 @@ class CaseResponse(BaseModel):
     state: str
 
 
-
 class CaseCreateResponse(BaseModel):
 
     case: CaseResponse
@@ -68,3 +63,20 @@ class CaseCreateResponse(BaseModel):
     reasoning: ReasoningResponse
 
     draft: DraftResponseSchema
+
+
+class FirstAppealResponse(BaseModel):
+
+    appeal_id: str
+
+    case_id: str
+
+    citizen_name: str
+
+    department: str
+
+    legal_route: str
+
+    title: str
+
+    body: str
